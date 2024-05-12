@@ -1,0 +1,364 @@
+import pygame
+import Box2D
+
+# Configuración de Box2D
+from Box2D import b2
+
+# Configuración de Pygame
+PPM = 32  # Píxeles por metro
+TARGET_FPS = 60
+TIME_STEP = 1.0 / TARGET_FPS
+
+# Crear el mundo de Box2D
+world = b2.world(gravity=(0, -10), doSleep=True)
+
+# Crear el suelo
+ground_body = world.CreateStaticBody(
+    position=(0, 0),
+    shapes=b2.polygonShape(box=(50, 1)),
+)
+
+# Crear el bloque
+block_body = world.CreateDynamicBody(
+    position=(0, 20),
+    fixtures=b2.fixtureDef(
+        shape=b2.polygonShape(box=(1, 1)),
+        density=1.0,
+        friction=0.3,
+    ),
+)
+
+# Configuración de Pygame
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+clock = pygame.time.Clock()
+
+# Loop de simulación
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Avanzar la simulación en el tiempo
+    world.Step(TIME_STEP, 6, 2)
+
+    # Limpiar la pantalla
+    screen.fill((255, 255, 255))
+
+    # Dibujar el suelo
+    ground_vertices = [(ground_body.transform * v) * PPM for v in ground_body.fixtures[0].shape.vertices]
+    pygame.draw.polygon(screen, (0, 0, 0), ground_vertices)
+
+    # Dibujar el bloque
+    block_vertices = [(block_body.transform * v) * PPM for v in block_body.fixtures[0].shape.vertices]
+    pygame.draw.polygon(screen, (255, 0, 0), block_vertices)
+
+    # Actualizar la pantalla
+    pygame.display.flip()
+    clock.tick(TARGET_FPS)
+
+pygame.quit()
+import pygame
+from Box2D import b2
+
+# Configuración de Pygame
+PPM = 32  # Píxeles por metro
+TARGET_FPS = 60
+TIME_STEP = 1.0 / TARGET_FPS
+
+# Crear el mundo de Box2D
+world = b2.world(gravity=(0, -10), doSleep=True)
+
+# Crear las barreras
+borders = [
+    # Bordes izquierdo y derecho
+    (b2.polygonShape(box=(1, 30)), (0, 15), (0, 0)),
+    (b2.polygonShape(box=(1, 30)), (40, 15), (0, 0)),
+    # Bordes superior e inferior
+    (b2.polygonShape(box=(20, 1)), (20, 0), (0, 0)),
+    (b2.polygonShape(box=(20, 1)), (20, 30), (0, 0)),
+]
+
+for shape, position, linear_velocity in borders:
+    body = world.CreateStaticBody(
+        position=position,
+        shapes=shape,
+    )
+
+# Crear los obstáculos estáticos
+obstacles = [
+    ((4, 3), (5, 5)),
+    ((15, 12), (17, 14)),
+    ((25, 6), (28, 8))
+]
+
+for obstacle in obstacles:
+    shape = b2.polygonShape(box=((obstacle[1][0] - obstacle[0][0]) / 2, (obstacle[1][1] - obstacle[0][1]) / 2))
+    position = ((obstacle[0][0] + obstacle[1][0]) / 2, (obstacle[0][1] + obstacle[1][1]) / 2)
+    world.CreateStaticBody(
+        position=position,
+        shapes=shape
+    )
+
+# Crear la pelota
+ball_body = world.CreateDynamicBody(
+    position=(2, 15),
+    fixtures=b2.fixtureDef(
+        shape=b2.circleShape(radius=1),
+        density=1.0,
+        friction=0.3,
+        restitution=1.0,  # Coeficiente de restitución máximo para el rebote perfecto
+    ),
+)
+
+# Configuración de Pygame
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+clock = pygame.time.Clock()
+
+# Loop de simulación
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Avanzar la simulación en el tiempo
+    world.Step(TIME_STEP, 6, 2)
+
+    # Limpiar la pantalla
+    screen.fill((255, 255, 255))
+
+    # Dibujar los bordes
+    for shape, position, _ in borders:
+        vertices = [(position[0] + v[0], position[1] + v[1]) for v in shape.vertices]
+        pygame.draw.polygon(screen, (0, 0, 0), vertices)
+
+    # Dibujar los obstáculos
+    for obstacle in obstacles:
+        pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(obstacle[0], (obstacle[1][0] - obstacle[0][0], obstacle[1][1] - obstacle[0][1])))
+
+    # Dibujar la pelota
+    ball_position = ball_body.transform * ball_body.fixtures[0].shape.pos * PPM
+    pygame.draw.circle(screen, (255, 0, 0), (int(ball_position[0]), int(600 - ball_position[1])), int(ball_body.fixtures[0].shape.radius * PPM))
+
+    # Actualizar la pantalla
+    pygame.display.flip()
+    clock.tick(TARGET_FPS)
+
+pygame.quit()
+import pygame
+from Box2D import b2
+
+# Configuración de Pygame
+PPM = 32  # Píxeles por metro
+TARGET_FPS = 60
+TIME_STEP = 1.0 / TARGET_FPS
+
+# Configuración del mundo Box2D
+world = b2.world(gravity=(0, -10), doSleep=True)
+
+# Crear el suelo
+ground_body = world.CreateStaticBody(
+    position=(0, 0),
+    shapes=b2.polygonShape(box=(50, 1)),
+)
+
+# Crear la caja
+box_body = world.CreateDynamicBody(
+    position=(0, 10),
+    fixtures=b2.fixtureDef(
+        shape=b2.polygonShape(box=(1, 1)),
+        density=1.0,
+        friction=0.5,  # Coeficiente de fricción
+    ),
+)
+
+# Configuración de Pygame
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+clock = pygame.time.Clock()
+
+# Fuerza aplicada por el usuario
+user_force = 20.0
+
+# Loop de simulación
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                box_body.ApplyForce((-user_force, 0), box_body.worldCenter, True)
+            elif event.key == pygame.K_RIGHT:
+                box_body.ApplyForce((user_force, 0), box_body.worldCenter, True)
+
+    # Avanzar la simulación en el tiempo
+    world.Step(TIME_STEP, 6, 2)
+
+    # Limpiar la pantalla
+    screen.fill((255, 255, 255))
+
+    # Dibujar el suelo
+    ground_vertices = [(ground_body.transform * v) * PPM for v in ground_body.fixtures[0].shape.vertices]
+    pygame.draw.polygon(screen, (0, 0, 0), ground_vertices)
+
+    # Dibujar la caja
+    box_vertices = [(box_body.transform * v) * PPM for v in box_body.fixtures[0].shape.vertices]
+    pygame.draw.polygon(screen, (255, 0, 0), box_vertices)
+
+    # Actualizar la pantalla
+    pygame.display.flip()
+    clock.tick(TARGET_FPS)
+
+pygame.quit()
+import pygame
+from Box2D import b2
+
+# Configuración de Pygame
+PPM = 32  # Píxeles por metro
+TARGET_FPS = 60
+TIME_STEP = 1.0 / TARGET_FPS
+
+# Configuración del mundo Box2D
+world = b2.world(gravity=(0, -10), doSleep=True)
+
+# Ángulo del plano inclinado en radianes
+angle = 30  # Ángulo en grados
+angle_rad = angle * (3.14159 / 180)  # Convertir a radianes
+
+# Coeficiente de fricción
+friction = 0.5
+
+# Crear el plano inclinado
+ground_body = world.CreateStaticBody(
+    position=(0, 0),
+    shapes=b2.polygonShape(vertices=[(0, 0), (50, 0), (50, 50 * 0.577), (0, 50 * 0.577)]),
+    angle=angle_rad,
+)
+
+# Crear la caja
+box_body = world.CreateDynamicBody(
+    position=(0, 10),
+    fixtures=b2.fixtureDef(
+        shape=b2.polygonShape(box=(1, 1)),
+        density=1.0,
+        friction=friction,
+    ),
+)
+
+# Configuración de Pygame
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+clock = pygame.time.Clock()
+
+# Loop de simulación
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Avanzar la simulación en el tiempo
+    world.Step(TIME_STEP, 6, 2)
+
+    # Limpiar la pantalla
+    screen.fill((255, 255, 255))
+
+    # Dibujar el plano inclinado
+    ground_vertices = [(ground_body.transform * v) * PPM for v in ground_body.fixtures[0].shape.vertices]
+    pygame.draw.polygon(screen, (0, 0, 0), ground_vertices)
+
+    # Dibujar la caja
+    box_vertices = [(box_body.transform * v) * PPM for v in box_body.fixtures[0].shape.vertices]
+    pygame.draw.polygon(screen, (255, 0, 0), box_vertices)
+
+    # Actualizar la pantalla
+    pygame.display.flip()
+    clock.tick(TARGET_FPS)
+
+pygame.quit()
+import pygame
+from Box2D import b2
+
+# Configuración de Pygame
+PPM = 32  # Píxeles por metro
+TARGET_FPS = 60
+TIME_STEP = 1.0 / TARGET_FPS
+
+# Configuración del mundo Box2D
+world = b2.world(gravity=(0, -10), doSleep=True)
+
+# Dimensiones de la pantalla
+SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
+
+# Crear el suelo
+ground_body = world.CreateStaticBody(
+    position=(0, 0),
+    shapes=b2.polygonShape(box=(50, 1)),
+)
+
+# Función para crear el proyectil
+def create_projectile(position):
+    return world.CreateDynamicBody(
+        position=position,
+        fixtures=b2.fixtureDef(
+            shape=b2.circleShape(radius=0.5),
+            density=1.0,
+            friction=0.3,
+            restitution=0.3,
+        ),
+    )
+
+# Configuración de Pygame
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+clock = pygame.time.Clock()
+
+# Estado del juego
+shooting = False
+projectile = None
+
+# Loop de simulación
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Botón izquierdo del ratón
+            if not shooting:
+                shooting = True
+                projectile = create_projectile((1, 2))  # Posición inicial del proyectil
+
+    # Actualizar el estado del proyectil si se está disparando
+    if shooting:
+        # Apuntar hacia la posición del ratón
+        mouse_position = pygame.mouse.get_pos()
+        direction = (mouse_position[0] / PPM - projectile.position.x, (SCREEN_HEIGHT - mouse_position[1]) / PPM - projectile.position.y)
+        direction /= b2.vec2(*direction).length
+
+        # Aplicar fuerza hacia la dirección apuntada
+        projectile.ApplyForceToCenter((direction[0] * 1000, direction[1] * 1000), True)
+
+    # Avanzar la simulación en el tiempo
+    world.Step(TIME_STEP, 6, 2)
+
+    # Limpiar la pantalla
+    screen.fill((255, 255, 255))
+
+    # Dibujar el suelo
+    ground_vertices = [(ground_body.transform * v) * PPM for v in ground_body.fixtures[0].shape.vertices]
+    pygame.draw.polygon(screen, (0, 0, 0), ground_vertices)
+
+    # Dibujar el proyectil si está disparando
+    if shooting:
+        projectile_position = projectile.position * PPM
+        pygame.draw.circle(screen, (255, 0, 0), (int(projectile_position.x), SCREEN_HEIGHT - int(projectile_position.y)), 10)
+
+    # Actualizar la pantalla
+    pygame.display.flip()
+    clock.tick(TARGET_FPS)
+
+pygame.quit()
